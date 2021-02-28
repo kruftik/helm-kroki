@@ -1,0 +1,158 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kroki.fullname" . }}
+  labels:
+    {{- include "kroki.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kroki.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "kroki.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "kroki.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: kroki
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: KROKI_LISTEN
+              value: "0.0.0.0:{{ .Values.service.port }}"
+
+            {{ if .Values.blockdiag.enabled }}
+            - name: KROKI_BLOCKDIAG_HOST
+              value: "localhost"
+            - name: KROKI_BLOCKDIAG_PORT
+              value: "8001"
+            {{- end }}
+
+            {{ if .Values.mermaid.enabled }}
+            - name: KROKI_MERMAID_HOST
+              value: "localhost"
+            - name: KROKI_MERMAID_PORT
+              value: "8002"
+            {{- end }}
+
+            {{ if .Values.bpmn.enabled }}
+            - name: KROKI_BPMN_HOST
+              value: "localhost"
+            - name: KROKI_BPMN_PORT
+              value: "8003"
+            {{- end }}
+
+            {{ if .Values.excalidraw.enabled }}
+            - name: KROKI_EXCALIDRAW_HOST
+              value: "localhost"
+            - name: KROKI_EXCALIDRAW_PORT
+              value: "8004"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: http
+          readinessProbe:
+            tcpSocket:
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        {{ if .Values.blockdiag.enabled }}
+        - name: blockdiag
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.blockdiag.image.repository }}:{{ .Values.blockdiag.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.blockdiag.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: http
+          readinessProbe:
+            tcpSocket:
+              port: http
+        {{- end }}
+        {{ if .Values.mermaid.enabled }}
+        - name: mermaid
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.mermaid.image.repository }}:{{ .Values.mermaid.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.mermaid.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8002
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: http
+          readinessProbe:
+            tcpSocket:
+              port: http
+        {{- end }}
+        {{ if .Values.bpmn.enabled }}
+        - name: bpmn
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.bpmn.image.repository }}:{{ .Values.bpmn.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.bpmn.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8003
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: http
+          readinessProbe:
+            tcpSocket:
+              port: http
+        {{- end }}
+        {{ if .Values.excalidraw.enabled }}
+        - name: excalidraw
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.excalidraw.image.repository }}:{{ .Values.excalidraw.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.excalidraw.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8004
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: http
+          readinessProbe:
+            tcpSocket:
+              port: http
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
